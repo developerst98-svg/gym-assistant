@@ -34,7 +34,17 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
       appBar: AppBar(
         title: const Text('Workout Tracker'),
         actions: [
-          if (_selectionMode)
+          if (_selectionMode) ...[
+            IconButton(
+              tooltip: 'Exit delete mode',
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                setState(() {
+                  _selectionMode = false;
+                  _selectedIds.clear();
+                });
+              },
+            ),
             IconButton(
               tooltip: 'Delete selected',
               icon: const Icon(Icons.delete, color: Colors.redAccent),
@@ -80,7 +90,8 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                         }
                       }
                     },
-            )
+            ),
+          ]
           else
             PopupMenuButton<String>(
               tooltip: 'More',
@@ -214,28 +225,31 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                               },
                         child: Stack(
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  name.isEmpty ? 'Unnamed' : name,
-                                  style: Theme.of(context).textTheme.titleMedium,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  note,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
+                          Align(
+                            alignment: Alignment.center,
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    name.isEmpty ? 'Unnamed' : name,
+                                    style: Theme.of(context).textTheme.titleMedium,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    note,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           if (_selectionMode)
