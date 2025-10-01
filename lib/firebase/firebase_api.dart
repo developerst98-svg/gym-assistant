@@ -7,7 +7,6 @@ import 'firebase_options.dart';
 class DataBaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   static Future<void> initializeFirebase() async {
     WidgetsFlutterBinding.ensureInitialized();
@@ -60,8 +59,39 @@ class DataBaseService {
   /// Gets all workouts for the given user.
   Future<List<Map<String, dynamic>>> getWorkouts() async {
     final userId = _firebaseAuth.currentUser!.uid;
-    final workouts = await _firestore.collection('Users').doc(userId).collection('workout').get();
-    return workouts.docs.map((doc) => doc.data()).toList();
+    final workouts = await _firestore
+        .collection('Users')
+        .doc(userId)
+        .collection('workout')
+        .get();
+    return workouts.docs
+        .map((doc) => {
+              ...doc.data(),
+              'id': doc.id,
+            })
+        .toList();
+  }
+
+
+  // delete workout
+  Future<void> deleteWorkout(String workoutId) async {
+    final userId = _firebaseAuth.currentUser!.uid;
+    await _firestore.collection('Users').doc(userId).collection('workout').doc(workoutId).delete();
+  }
+
+  // delete many workouts
+  Future<void> deleteManyWorkouts(List<String> workoutIds) async {
+    final String userId = _firebaseAuth.currentUser!.uid;
+    final WriteBatch batch = _firestore.batch();
+    for (final String workoutId in workoutIds) {
+      final DocumentReference docRef = _firestore
+          .collection('Users')
+          .doc(userId)
+          .collection('workout')
+          .doc(workoutId);
+      batch.delete(docRef);
+    }
+    await batch.commit();
   }
 
 
@@ -99,12 +129,12 @@ class AuthenticationService {
       String cleanPhoneNumber = phoneNumber.replaceAll(' ', '');
       // print('cleanPhoneNumber: $cleanPhoneNumber');
       // print('password: $password');
-      final UserCredential result = await _firebaseAuth
+      await _firebaseAuth
           .signInWithEmailAndPassword(
             email: "${cleanPhoneNumber.trim()}@phone.com",
             password: password.trim(),
           );
-    } on FirebaseAuthException catch (error) {
+    } on FirebaseAuthException catch (_) {
       throw Exception('Invalid password');
     }
   }

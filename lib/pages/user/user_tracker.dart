@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../firebase/firebase_api.dart';
 
@@ -11,6 +12,9 @@ class UserTrackerPage extends StatefulWidget {
 
 class _UserTrackerPageState extends State<UserTrackerPage> {
   late Future<List<Map<String, dynamic>>> _workoutsFuture;
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = <String>{};
+  Timer? _longPressTimer;
 
   @override
   void initState() {
@@ -19,16 +23,89 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
   }
 
   @override
+  void dispose() {
+    _longPressTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Workout Tracker'),
         actions: [
-          TextButton.icon(
-            onPressed: () => _openCreateWorkoutDialog(context),
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text('Create workout', style: TextStyle(color: Colors.white)),
-          ),
+          if (_selectionMode)
+            IconButton(
+              tooltip: 'Delete selected',
+              icon: const Icon(Icons.delete, color: Colors.redAccent),
+              onPressed: _selectedIds.isEmpty
+                  ? null
+                  : () async {
+                      final bool? confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (dCtx) => AlertDialog(
+                          title: const Text('Delete selected workouts?'),
+                          content: Text('Are you sure you want to delete ${_selectedIds.length} selected workout(s)?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(dCtx).pop(false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(dCtx).pop(true),
+                              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        try {
+                          await DataBaseService().deleteManyWorkouts(_selectedIds.toList());
+                          if (context.mounted) {
+                            setState(() {
+                              _selectionMode = false;
+                              _selectedIds.clear();
+                              _workoutsFuture = DataBaseService().getWorkouts();
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Selected workouts deleted')),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to delete selected: $e')),
+                            );
+                          }
+                        }
+                      }
+                    },
+            )
+          else
+            PopupMenuButton<String>(
+              tooltip: 'More',
+              onSelected: (value) {
+                if (value == 'delete') {
+                  setState(() {
+                    _selectionMode = true;
+                    _selectedIds.clear();
+                  });
+                } else if (value == 'create') {
+                  _openCreateWorkoutDialog(context);
+                }
+              },
+              itemBuilder: (ctx) => const [
+                PopupMenuItem<String>(
+                  value: 'create',
+                  child: Text('Create workout'),
+                ),
+                PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Text('Delete'),
+                ),
+              ],
+              icon: const Icon(Icons.more_vert),
+            ),
         ],
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -91,6 +168,8 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
               Widget buildCard(Map<String, dynamic> w) {
                 final String name = (w['name'] ?? '') as String;
                 final String note = (w['note'] ?? '') as String;
+                final String? id = w['id'] as String?;
+                final bool isSelected = id != null && _selectedIds.contains(id);
                 return SizedBox(
                   width: 150,
                   height: 120,
@@ -100,28 +179,87 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                       borderRadius: BorderRadius.circular(8),
                       side: BorderSide(color: Theme.of(context).dividerColor, width: 1),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                    child: GestureDetector(
+                      onTapDown: (_) {
+                        if (!_selectionMode) {
+                          _longPressTimer?.cancel();
+                          _longPressTimer = Timer(const Duration(seconds: 1), () {
+                            if (!mounted) return;
+                            if (id == null) return;
+                            setState(() {
+                              _selectionMode = true;
+                              _selectedIds.add(id);
+                            });
+                          });
+                        }
+                      },
+                      onTapUp: (_) {
+                        _longPressTimer?.cancel();
+                      },
+                      onTapCancel: () {
+                        _longPressTimer?.cancel();
+                      },
+                      child: InkWell(
+                        onTap: !_selectionMode
+                            ? null
+                            : () {
+                                if (id == null) return;
+                                setState(() {
+                                  if (_selectedIds.contains(id)) {
+                                    _selectedIds.remove(id);
+                                  } else {
+                                    _selectedIds.add(id);
+                                  }
+                                });
+                              },
+                        child: Stack(
                         children: [
-                          Text(
-                            name.isEmpty ? 'Unnamed' : name,
-                            style: Theme.of(context).textTheme.titleMedium,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
+                          Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  name.isEmpty ? 'Unnamed' : name,
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  note,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            note,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall,
-                            textAlign: TextAlign.center,
-                          ),
+                          if (_selectionMode)
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: Container(
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).dividerColor,
+                                    width: 2,
+                                  ),
+                                  color: isSelected ? Theme.of(context).colorScheme.primary.withOpacity(0.15) : Colors.transparent,
+                                ),
+                                child: isSelected
+                                    ? Icon(Icons.check, size: 16, color: Theme.of(context).colorScheme.primary)
+                                    : null,
+                              ),
+                            ),
                         ],
+                        ),
                       ),
                     ),
                   ),
@@ -187,6 +325,19 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController notesController = TextEditingController();
     DateTime selectedDate = DateTime.now();
+    // Options for quick-select workout names
+    const List<String> nameOptions = [
+      'Chest day',
+      'Back day',
+      'Leg day',
+      'Push day',
+      'Pull day',
+      'Arms day',
+      'Shoulders day',
+      'Full body',
+      'Other',
+    ];
+    String? selectedNameOption;
 
     showDialog(
       context: context,
@@ -199,10 +350,39 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    DropdownButtonFormField<String>(
+                      value: selectedNameOption,
+                      items: nameOptions
+                          .map((opt) => DropdownMenuItem(
+                                value: opt,
+                                child: Text(opt),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setStateDialog(() {
+                          selectedNameOption = value;
+                          if (selectedNameOption != 'Other') {
+                            // Clear custom input when preset is chosen
+                            nameController.clear();
+                          }
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        labelText: 'Workout name',
+                        hintText: 'Select a preset or choose Other',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (selectedNameOption == 'Other')
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Custom name'),
+                        textInputAction: TextInputAction.next,
+                      ),
+                    const SizedBox(height: 12),
                     TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Workout name'),
-                      textInputAction: TextInputAction.next,
+                      controller: notesController,
+                      decoration: const InputDecoration(labelText: 'Notes'),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -232,12 +412,6 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: notesController,
-                      decoration: const InputDecoration(labelText: 'Notes'),
-                      maxLines: 3,
-                    ),
                   ],
                 ),
               ),
@@ -248,7 +422,10 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final String name = nameController.text.trim();
+                    final bool usingOther = selectedNameOption == 'Other';
+                    final String name = usingOther
+                        ? nameController.text.trim()
+                        : (selectedNameOption ?? '').trim();
                     final String notes = notesController.text.trim();
                     if (name.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
