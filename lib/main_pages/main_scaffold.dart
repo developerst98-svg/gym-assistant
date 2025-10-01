@@ -15,7 +15,7 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 1;
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +27,12 @@ class _MainScaffoldState extends State<MainScaffold> {
     final navItems = widget.role == 'coach'
         ? const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-            BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Profile"),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
           ]
         : const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
             BottomNavigationBarItem(icon: Icon(Icons.track_changes), label: "Tracker"),
-            BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Profile"),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
           ];
 
     return Scaffold(
