@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../firebase/firebase_api.dart';
-
+import 'user_set_exercise.dart';
 class UserTrackerPage extends StatefulWidget {
   const UserTrackerPage({super.key});
 
@@ -15,11 +15,97 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
   bool _selectionMode = false;
   final Set<String> _selectedIds = <String>{};
   Timer? _longPressTimer;
+  final DataBaseService _db = DataBaseService();
+
+  void _showSuccessSnackBar({
+    required BuildContext context,
+    required String title,
+    String? subtitle,
+    IconData icon = Icons.check_circle,
+  }) {
+    final snackBar = SnackBar(
+      behavior: SnackBarBehavior.floating,
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      backgroundColor: Colors.transparent,
+      duration: const Duration(seconds: 2),
+      content: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                  ],
+                ),
+              ),
+              child: Center(
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  if (subtitle != null && subtitle.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.8),
+                            ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(snackBar);
+  }
 
   @override
   void initState() {
     super.initState();
-    _workoutsFuture = DataBaseService().getWorkouts();
+    _workoutsFuture = _db.getWorkouts();
   }
 
   @override
@@ -70,15 +156,18 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                       );
                       if (confirm == true) {
                         try {
-                          await DataBaseService().deleteManyWorkouts(_selectedIds.toList());
+                          await _db.deleteManyWorkouts(_selectedIds.toList());
                           if (context.mounted) {
                             setState(() {
                               _selectionMode = false;
                               _selectedIds.clear();
-                              _workoutsFuture = DataBaseService().getWorkouts();
+                              _workoutsFuture = _db.getWorkouts();
                             });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Selected workouts deleted')),
+                            _showSuccessSnackBar(
+                              context: context,
+                              title: 'Deleted successfully',
+                              subtitle: 'Selected workouts have been removed.',
+                              icon: Icons.delete_sweep,
                             );
                           }
                         } catch (e) {
@@ -153,6 +242,7 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
 
           return ListView.builder(
             padding: const EdgeInsets.all(12),
+            cacheExtent: 800,
             itemCount: dateKeys.length,
             itemBuilder: (context, index) {
               final String key = dateKeys[index];
@@ -211,18 +301,30 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                         _longPressTimer?.cancel();
                       },
                       child: InkWell(
-                        onTap: !_selectionMode
-                            ? null
-                            : () {
-                                if (id == null) return;
-                                setState(() {
-                                  if (_selectedIds.contains(id)) {
-                                    _selectedIds.remove(id);
-                                  } else {
-                                    _selectedIds.add(id);
-                                  }
-                                });
-                              },
+                        onTap: () {
+                          if (!_selectionMode) {
+                            if (id == null || id.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Missing workout ID')),
+                              );
+                              return;
+                            }
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (ctx) => UserSetExercisePage(workoutId: id),
+                              ),
+                            );
+                          } else {
+                            if (id == null) return;
+                            setState(() {
+                              if (_selectedIds.contains(id)) {
+                                _selectedIds.remove(id);
+                              } else {
+                                _selectedIds.add(id);
+                              }
+                            });
+                          }
+                        },
                         child: Stack(
                         children: [
                           Align(
@@ -320,7 +422,7 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                         Wrap(
                           spacing: 12,
                           runSpacing: 12,
-                          children: dayWorkouts.map(buildCard).toList(),
+                          children: [for (final w in dayWorkouts) KeyedSubtree(key: ValueKey(w['id'] ?? w.hashCode), child: buildCard(w))],
                         ),
                         const SizedBox(height: 20),
                       ],
@@ -456,10 +558,13 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                       if (context.mounted) {
                         Navigator.of(ctx).pop();
                         setState(() {
-                          _workoutsFuture = DataBaseService().getWorkouts();
+                          _workoutsFuture = _db.getWorkouts();
                         });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Workout created')),
+                        _showSuccessSnackBar(
+                          context: context,
+                          title: 'Workout created',
+                          subtitle: 'Your workout has been added successfully.',
+                          icon: Icons.fitness_center,
                         );
                       }
                     } catch (e) {
