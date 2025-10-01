@@ -5,7 +5,7 @@ import '../pages/coach/coach_home.dart';
 import '../pages/user/user_home.dart';
 import '../pages/user/user_profile.dart';
 import '../pages/coach/coach_profile.dart';
-
+import '../pages/user/user_tracker.dart';
 class MainScaffold extends StatefulWidget {
   final String role;
   const MainScaffold({super.key, required this.role});
@@ -22,7 +22,7 @@ class _MainScaffoldState extends State<MainScaffold> {
     // Different nav items depending on role
     final pages = widget.role == 'coach'
         ? [CoachHomePage(), CoachProfilePage()]
-        : [UserHomePage(), UserProfilePage()];
+        : [UserHomePage(),  UserTrackerPage(),UserProfilePage()];
 
     final navItems = widget.role == 'coach'
         ? const [
@@ -31,6 +31,7 @@ class _MainScaffoldState extends State<MainScaffold> {
           ]
         : const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+            BottomNavigationBarItem(icon: Icon(Icons.track_changes), label: "Tracker"),
             BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Profile"),
           ];
 

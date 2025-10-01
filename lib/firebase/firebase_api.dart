@@ -31,6 +31,40 @@ class DataBaseService {
   }
 
 
+  //& Workout
+  /// Creates a new workout document in the "workout" subcollection for the given user.
+  /// The workout document contains: name, note, date.
+  Future<void> createWorkout({
+    required String name,
+    required String? note,
+    required DateTime date,
+  }) async {
+    try {
+      final userId = _firebaseAuth.currentUser!.uid;
+      await _firestore
+          .collection('Users')
+          .doc(userId)
+          .collection('workout')
+          .add({
+        'name': name,
+        'note': note ?? '',
+        'date': date,
+      });
+    } catch (e) {
+      // Optionally handle/log error
+      rethrow;
+    }
+  }
+
+
+  /// Gets all workouts for the given user.
+  Future<List<Map<String, dynamic>>> getWorkouts() async {
+    final userId = _firebaseAuth.currentUser!.uid;
+    final workouts = await _firestore.collection('Users').doc(userId).collection('workout').get();
+    return workouts.docs.map((doc) => doc.data()).toList();
+  }
+
+
 
 }
 

@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase/firebase_options.dart';
 import 'main_pages/role_wrapper.dart';
 import 'pages/auth/login.dart';
-
+import 'theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Gym Tracker',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: appThemeDark,
       debugShowCheckedModeBanner: false,
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
