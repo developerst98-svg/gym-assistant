@@ -214,7 +214,7 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
-              child: LoadingAnimationWidget.staggeredDotsWave(
+              child: LoadingAnimationWidget.dotsTriangle(
                 color: Theme.of(context).colorScheme.secondary,
                 size: 64,
               ),
