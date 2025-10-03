@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class UserHomePage extends StatelessWidget {
   const UserHomePage({Key? key}) : super(key: key);
@@ -9,10 +10,10 @@ class UserHomePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('User Home'),
       ),
-      body: const Center(
-        child: Text(
-          'Welcome to the User Home Page!',
-          style: TextStyle(fontSize: 20),
+      body: Center(
+        child: LoadingAnimationWidget.dotsTriangle(
+          color: Theme.of(context).colorScheme.secondary,
+          size: 64,
         ),
       ),
     );

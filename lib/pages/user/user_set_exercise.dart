@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 // Removed to avoid circular import
 
 class UserSetExercisePage extends StatelessWidget {
@@ -23,21 +24,9 @@ class UserSetExercisePage extends StatelessWidget {
         ),
       ),
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'This is the Set Exercise page.',
-              style: TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 8),
-            Text('Workout ID: $workoutId'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {},
-              child: const Text('Add New Exercise'),
-            ),
-          ],
+        child: LoadingAnimationWidget.dotsTriangle(
+          color: Theme.of(context).colorScheme.secondary,
+          size: 64,
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class UserProfilePage extends StatelessWidget {
   const UserProfilePage({super.key});
@@ -7,8 +8,11 @@ class UserProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('User Profile')),
-      body: const Center(
-        child: Text('User Profile Page'),
+      body: Center(
+        child: LoadingAnimationWidget.dotsTriangle(
+          color: Theme.of(context).colorScheme.secondary,
+          size: 64,
+        ),
       ),
     );
   }

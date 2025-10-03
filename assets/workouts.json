@@ -1,0 +1,47 @@
+{
+  "Chest Day": {
+    "Target Muscles": {
+      "Upper Chest": ["Incline Bench Press", "Incline Dumbbell Press"],
+      "Middle Chest": ["Flat Bench Press", "Chest Fly"],
+      "Lower Chest": ["Decline Bench Press", "Dips (Chest Focus)"]
+    }
+  },
+  "Back Day": {
+    "Target Muscles": {
+      "Lats": ["Pull-Ups", "Lat Pulldown"],
+      "Traps": ["Barbell Shrugs", "Face Pulls"],
+      "Rhomboids - Mid Back": ["Seated Cable Row", "Reverse Fly"],
+      "Lower Back": ["Deadlift", "Hyperextensions"]
+    }
+  },
+  "Leg Day": {
+    "Target Muscles": {
+      "Quads": ["Squats", "Leg Press", "Lunges"],
+      "Hamstrings": ["Romanian Deadlift", "Leg Curl"],
+      "Glutes": ["Hip Thrust", "Bulgarian Split Squat"],
+      "Calves": ["Standing Calf Raise", "Seated Calf Raise"]
+    }
+  },
+  "Shoulder Day": {
+    "Target Muscles": {
+      "Front Delts": ["Overhead Press", "Arnold Press"],
+      "Side Delts": ["Lateral Raise", "Upright Row"],
+      "Rear Delts": ["Rear Delt Fly", "Face Pulls"]
+    }
+  },
+  "Arm Day": {
+    "Target Muscles": {
+      "Biceps": ["Barbell Curl", "Hammer Curl"],
+      "Triceps": ["Close-Grip Bench Press", "Tricep Dips"],
+      "Forearms": ["Wrist Curls", "Farmer's Carry"]
+    }
+  },
+  "Core Day": {
+    "Target Muscles": {
+      "Upper Abs": ["Crunches", "Cable Crunch"],
+      "Lower Abs": ["Leg Raises", "Reverse Crunch"],
+      "Obliques": ["Russian Twist", "Side Plank"],
+      "Transverse Abdominis": ["Plank", "Ab Wheel Rollout"]
+    }
+  }
+}

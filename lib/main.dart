@@ -5,11 +5,13 @@ import 'firebase/firebase_options.dart';
 import 'main_pages/role_wrapper.dart';
 import 'pages/auth/login.dart';
 import 'theme.dart';
+import 'main_pages/import_json_workout.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // await importWorkouts();
   runApp(const MyApp());
 }
 
