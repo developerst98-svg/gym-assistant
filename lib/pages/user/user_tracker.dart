@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../../firebase/firebase_api.dart';
 import 'user_set_exercise.dart';
 class UserTrackerPage extends StatefulWidget {
@@ -212,7 +213,12 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
         future: _workoutsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: LoadingAnimationWidget.staggeredDotsWave(
+                color: Theme.of(context).colorScheme.secondary,
+                size: 64,
+              ),
+            );
           }
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));

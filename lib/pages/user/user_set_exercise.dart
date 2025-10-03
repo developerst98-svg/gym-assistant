@@ -32,6 +32,11 @@ class UserSetExercisePage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text('Workout ID: $workoutId'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {},
+              child: const Text('Add New Exercise'),
+            ),
           ],
         ),
       ),
