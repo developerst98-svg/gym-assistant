@@ -1,0 +1,215 @@
+{
+    "Chest": {
+      "Upper Chest": [
+        "Incline Barbell Bench Press",
+        "Incline Dumbbell Press",
+        "Incline Chest Fly",
+        "Incline Machine Press",
+        "Incline Push-up"
+      ],
+      "Middle Chest": [
+        "Flat Barbell Bench Press",
+        "Flat Dumbbell Press",
+        "Chest Fly (Flat)",
+        "Cable Crossover (Mid-level)",
+        "Push-up"
+      ],
+      "Lower Chest": [
+        "Decline Barbell Bench Press",
+        "Decline Dumbbell Press",
+        "Decline Cable Fly",
+        "Chest Dips",
+        "Decline Machine Press"
+      ]
+    },
+    "Back": {
+      "Lats": [
+        "Pull-up",
+        "Lat Pulldown (Wide Grip)",
+        "Seated Row (Close Grip)",
+        "Dumbbell Row",
+        "Barbell Bent-over Row"
+      ],
+      "Upper Back": [
+        "Face Pull",
+        "Reverse Fly",
+        "T-bar Row",
+        "Cable Row (Wide Grip)",
+        "Inverted Row"
+      ],
+      "Lower Back": [
+        "Deadlift",
+        "Romanian Deadlift",
+        "Good Morning",
+        "Back Extension",
+        "Superman Hold"
+      ],
+      "Traps": [
+        "Barbell Shrug",
+        "Dumbbell Shrug",
+        "Upright Row",
+        "Farmer's Carry",
+        "Rack Pull"
+      ],
+      "Rear Delts": [
+        "Reverse Pec Deck",
+        "Rear Delt Fly",
+        "Cable Rear Delt Fly",
+        "Bent-over Dumbbell Lateral Raise"
+      ]
+    },
+    "Shoulders": {
+      "Front Delts": [
+        "Front Raise (Dumbbell)",
+        "Barbell Front Raise",
+        "Cable Front Raise",
+        "Overhead Press (Barbell or Dumbbell)"
+      ],
+      "Side Delts": [
+        "Lateral Raise (Dumbbell)",
+        "Cable Lateral Raise",
+        "Machine Lateral Raise",
+        "Arnold Press"
+      ],
+      "Rear Delts": [
+        "Reverse Fly",
+        "Bent-over Lateral Raise",
+        "Face Pull",
+        "Rear Delt Row"
+      ]
+    },
+    "Arms": {
+      "Biceps": [
+        "Barbell Curl",
+        "Dumbbell Curl",
+        "Preacher Curl",
+        "Concentration Curl",
+        "Cable Curl",
+        "Hammer Curl"
+      ],
+      "Triceps": [
+        "Close-Grip Bench Press",
+        "Tricep Dips",
+        "Overhead Tricep Extension",
+        "Tricep Pushdown (Cable)",
+        "Skull Crusher",
+        "Diamond Push-up"
+      ],
+      "Forearms": [
+        "Wrist Curl",
+        "Reverse Wrist Curl",
+        "Farmer's Carry",
+        "Towel Pull-up",
+        "Reverse Curl"
+      ]
+    },
+    "Legs": {
+      "Quadriceps": [
+        "Barbell Squat",
+        "Front Squat",
+        "Leg Press",
+        "Lunge",
+        "Leg Extension"
+      ],
+      "Hamstrings": [
+        "Romanian Deadlift",
+        "Lying Leg Curl",
+        "Seated Leg Curl",
+        "Good Morning",
+        "Cable Kickback"
+      ],
+      "Glutes": [
+        "Hip Thrust",
+        "Glute Bridge",
+        "Bulgarian Split Squat",
+        "Step-up",
+        "Cable Pull-through"
+      ],
+      "Calves": [
+        "Standing Calf Raise",
+        "Seated Calf Raise",
+        "Leg Press Calf Raise",
+        "Donkey Calf Raise",
+        "Single-leg Calf Raise"
+      ],
+      "Adductors": [
+        "Seated Hip Adduction",
+        "Side Lunge",
+        "Cable Hip Adduction"
+      ],
+      "Abductors": [
+        "Cable Hip Abduction",
+        "Standing Abduction",
+        "Lateral Band Walk",
+        "Machine Hip Abduction"
+      ]
+    },
+    "Core": {
+      "Upper Abs": [
+        "Crunch",
+        "Sit-up",
+        "Cable Crunch",
+        "Machine Crunch",
+        "Toe Touch"
+      ],
+      "Lower Abs": [
+        "Leg Raise",
+        "Reverse Crunch",
+        "Hanging Leg Raise",
+        "Flutter Kicks",
+        "Mountain Climber"
+      ],
+      "Obliques": [
+        "Russian Twist",
+        "Side Plank",
+        "Cable Woodchopper",
+        "Standing Oblique Crunch",
+        "Bicycle Crunch"
+      ],
+      "Full Core": [
+        "Plank",
+        "Ab Wheel Rollout",
+        "V-Up",
+        "Dead Bug",
+        "Hollow Hold"
+      ]
+    },
+    "Full Body & Functional": {
+      "Compound Lifts": [
+        "Deadlift",
+        "Squat",
+        "Bench Press",
+        "Clean and Press",
+        "Snatch"
+      ],
+      "Bodyweight & Calisthenics": [
+        "Pull-up",
+        "Push-up",
+        "Dips",
+        "Burpee",
+        "Muscle-up"
+      ],
+      "Stability & Conditioning": [
+        "Farmer’s Carry",
+        "Kettlebell Swing",
+        "Medicine Ball Slam",
+        "Battle Rope",
+        "Sled Push"
+      ]
+    },
+    "Neck": {
+      "Neck Flexors": [
+        "Neck Curl",
+        "Neck Bridge (Front)"
+      ],
+      "Neck Extensors": [
+        "Neck Extension",
+        "Neck Bridge (Back)"
+      ],
+      "Lateral Neck": [
+        "Side Neck Raise",
+        "Lateral Neck Resistance"
+      ]
+    }
+  }
+  

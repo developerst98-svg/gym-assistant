@@ -17,6 +17,7 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
   final Set<String> _selectedIds = <String>{};
   Timer? _longPressTimer;
   final DataBaseService _db = DataBaseService();
+  final Set<String> _expandedDays = {}; // Track which day sections are expanded
 
   void _showSuccessSnackBar({
     required BuildContext context,
@@ -107,12 +108,46 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
   void initState() {
     super.initState();
     _workoutsFuture = _db.getWorkouts();
+    // Set all days to be expanded by default
+    _workoutsFuture.then((workouts) {
+      if (mounted) {
+        final Map<String, List<Map<String, dynamic>>> grouped = {};
+        for (final w in workouts) {
+          final dynamic rawDate = w['date'];
+          DateTime? date;
+          if (rawDate is Timestamp) {
+            date = rawDate.toDate();
+          } else if (rawDate is DateTime) {
+            date = rawDate;
+          }
+          final DateTime d = date != null
+              ? DateTime(date.year, date.month, date.day)
+              : DateTime(1970, 1, 1);
+          final String key = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+          grouped.putIfAbsent(key, () => []).add(w);
+        }
+        
+        setState(() {
+          _expandedDays.addAll(grouped.keys);
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _longPressTimer?.cancel();
     super.dispose();
+  }
+
+  void _toggleDayExpansion(String dateKey) {
+    setState(() {
+      if (_expandedDays.contains(dateKey)) {
+        _expandedDays.remove(dateKey);
+      } else {
+        _expandedDays.add(dateKey);
+      }
+    });
   }
 
   @override
@@ -420,16 +455,49 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          displayDate,
-                          style: Theme.of(context).textTheme.titleMedium,
+                        // Day header with fold icon
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                displayDate,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                _toggleDayExpansion(key);
+                              },
+                              icon: Icon(
+                                _expandedDays.contains(key)
+                                    ? Icons.expand_less
+                                    : Icons.expand_more,
+                                color: Colors.grey[600],
+                                size: 24,
+                              ),
+                              tooltip: _expandedDays.contains(key)
+                                  ? 'Collapse Day'
+                                  : 'Expand Day',
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.grey.withOpacity(0.1),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding: const EdgeInsets.all(8),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [for (final w in dayWorkouts) KeyedSubtree(key: ValueKey(w['id'] ?? w.hashCode), child: buildCard(w))],
-                        ),
+                        
+                        // Workout cards (only show when expanded)
+                        if (_expandedDays.contains(key)) ...[
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [for (final w in dayWorkouts) KeyedSubtree(key: ValueKey(w['id'] ?? w.hashCode), child: buildCard(w))],
+                          ),
+                        ],
                         const SizedBox(height: 20),
                       ],
                     ),
