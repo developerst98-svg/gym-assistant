@@ -236,7 +236,11 @@ class _UserSetExercisePageState extends State<UserSetExercisePage> {
                     items: _exerciseGroupIds.map((String id) {
                       return DropdownMenuItem<String>(
                         value: id,
-                        child: Text(id),
+                        child: Text(
+                          id,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       );
                     }).toList(),
                     onChanged: (String? newValue) async {
@@ -267,7 +271,11 @@ class _UserSetExercisePageState extends State<UserSetExercisePage> {
                     items: _muscleIds.map((String id) {
                       return DropdownMenuItem<String>(
                         value: id,
-                        child: Text(id),
+                        child: Text(
+                          id,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       );
                     }).toList(),
                     onChanged: _muscleIds.isNotEmpty
@@ -303,7 +311,11 @@ class _UserSetExercisePageState extends State<UserSetExercisePage> {
                     items: _exerciseIds.map((String id) {
                       return DropdownMenuItem<String>(
                         value: id,
-                        child: Text(id),
+                        child: Text(
+                          id,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       );
                     }).toList(),
                     onChanged: _exerciseIds.isNotEmpty

@@ -545,7 +545,11 @@ class _UserTrackerPageState extends State<UserTrackerPage> {
                       items: nameOptions
                           .map((opt) => DropdownMenuItem(
                                 value: opt,
-                                child: Text(opt),
+                                child: Text(
+                                  opt,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
                               ))
                           .toList(),
                       onChanged: (value) {

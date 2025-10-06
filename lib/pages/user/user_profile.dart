@@ -21,7 +21,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Future<void> _loadPageData() async {
     // Simulate loading time - you can replace this with actual data loading
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 0));
     
     setState(() {
       _isLoading = false;
