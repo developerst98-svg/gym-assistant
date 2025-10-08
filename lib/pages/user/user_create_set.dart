@@ -197,6 +197,10 @@ class _UserCreateSetPageState extends State<UserCreateSetPage> {
   }
 
   void _showCreateSetDialog() {
+    // Automatically set the next set number based on existing sets
+    final int nextSetNumber = _exerciseSets.length + 1;
+    _setNumber = nextSetNumber;
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -208,19 +212,23 @@ class _UserCreateSetPageState extends State<UserCreateSetPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Set Number
+                    // Set Number (Read-only, automatically set)
                     TextFormField(
-                      initialValue: _setNumber.toString(),
-                      decoration: const InputDecoration(
-                        labelText: 'Set Number',
-                        border: OutlineInputBorder(),
+                      initialValue: nextSetNumber.toString(),
+                      decoration: InputDecoration(
+                        labelText: 'Set Number (Auto)',
+                        border: const OutlineInputBorder(),
+                        filled: true,
+                        
+                        suffixIcon: Icon(Icons.auto_awesome, size: 20, color: Colors.blue[700]),
+                        helperText: 'Automatically assigned',
                       ),
+                      readOnly: true,
                       keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          _setNumber = int.tryParse(value) ?? 1;
-                        });
-                      },
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     
@@ -417,6 +425,255 @@ class _UserCreateSetPageState extends State<UserCreateSetPage> {
                     }
                   },
                   child: const Text('Create Set'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showEditSetDialog(Map<String, dynamic> setData) {
+    // Pre-fill form fields with existing set data
+    int editSetNumber = setData['setNumber'] ?? 1;
+    String editWeightUnit = setData['weightUnit'] ?? 'kg';
+    double editWeight = (setData['weight'] ?? 0).toDouble();
+    int editReps = setData['reps'] ?? 0;
+    String editNote = setData['note'] ?? '';
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Edit Set'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Set Number (Display only)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.blue.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.numbers, color: Colors.blue[700], size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Set Number: $editSetNumber',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Weight Unit Radio Buttons
+                    Row(
+                      children: [
+                        const Text('Weight Unit:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 16),
+                        Radio<String>(
+                          value: 'kg',
+                          groupValue: editWeightUnit,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              editWeightUnit = value!;
+                            });
+                          },
+                        ),
+                        const Text('kg'),
+                        const SizedBox(width: 20),
+                        Radio<String>(
+                          value: 'lbs',
+                          groupValue: editWeightUnit,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              editWeightUnit = value!;
+                            });
+                          },
+                        ),
+                        const Text('lbs'),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Weight
+                    TextFormField(
+                      initialValue: editWeight.toString(),
+                      decoration: InputDecoration(
+                        labelText: 'Weight ($editWeightUnit)',
+                        border: const OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          editWeight = double.tryParse(value) ?? 0.0;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Reps
+                    TextFormField(
+                      initialValue: editReps.toString(),
+                      decoration: const InputDecoration(
+                        labelText: 'Number of Reps',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          editReps = int.tryParse(value) ?? 0;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Note
+                    TextFormField(
+                      initialValue: editNote,
+                      decoration: const InputDecoration(
+                        labelText: 'Note (Optional)',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          editNote = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      // Call the Firebase function to update the set
+                      await _db.updateSetForExercise(
+                        workoutId: widget.workoutId,
+                        exerciseId: widget.exerciseId,
+                        setId: setData['id'],
+                        setNumber: editSetNumber,
+                        weightUnit: editWeightUnit,
+                        weight: editWeight,
+                        reps: editReps,
+                        note: editNote,
+                      );
+                      
+                      // Show success message
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'Set updated successfully! 🎉',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: Colors.green,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            margin: const EdgeInsets.all(16),
+                            duration: const Duration(seconds: 3),
+                            elevation: 8,
+                          ),
+                        );
+                      }
+                      
+                      // Refresh the sets list
+                      _loadExerciseSets();
+                      
+                      Navigator.of(context).pop();
+                    } catch (e) {
+                      // Show error message
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Icon(
+                                    Icons.error_outline,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'Failed to update set. Please try again.',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            margin: const EdgeInsets.all(16),
+                            duration: const Duration(seconds: 4),
+                            elevation: 8,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Update'),
                 ),
               ],
             );
@@ -782,6 +1039,26 @@ class _UserCreateSetPageState extends State<UserCreateSetPage> {
                                                   ),
                                                 ],
                                               ],
+                                            ),
+                                          ),
+                                          
+                                          // Edit button
+                                          IconButton(
+                                            onPressed: () {
+                                              _showEditSetDialog(set);
+                                            },
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              color: Colors.blue,
+                                              size: 24,
+                                            ),
+                                            tooltip: 'Edit Set',
+                                            style: IconButton.styleFrom(
+                                              backgroundColor: Colors.blue.withOpacity(0.1),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              padding: const EdgeInsets.all(8),
                                             ),
                                           ),
                                           

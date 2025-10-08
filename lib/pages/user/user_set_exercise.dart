@@ -27,12 +27,17 @@ class _UserSetExercisePageState extends State<UserSetExercisePage> {
   List<Map<String, dynamic>> _workoutExercises = [];
   bool _isLoadingExercises = true;
   Set<String> _expandedCards = {}; // Track which cards are expanded
+  
+  // Cache for exercise hierarchy data
+  Map<String, List<String>> _muscleCache = {}; // groupId -> muscleIds
+  Map<String, List<String>> _exerciseCache = {}; // groupId_muscleId -> exerciseIds
 
   @override
   void initState() {
     super.initState();
     _loadExerciseGroupIds();
     _loadWorkoutExercises();
+    _preloadExerciseHierarchy();
     print('workoutId: ${widget.workoutId}');
   }
 
@@ -74,6 +79,52 @@ class _UserSetExercisePageState extends State<UserSetExercisePage> {
     } finally {
       _checkLoadingComplete();
     }
+  }
+
+  Future<void> _preloadExerciseHierarchy() async {
+    try {
+      // Wait for exercise groups to load first
+      int attempts = 0;
+      while (_exerciseGroupIds.isEmpty && attempts < 10) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        attempts++;
+      }
+      
+      // Preload all muscle data for all exercise groups
+      for (final groupId in _exerciseGroupIds) {
+        if (!_muscleCache.containsKey(groupId)) {
+          final muscles = await _db.getMuscleDocIdsForGroup(groupId);
+          _muscleCache[groupId] = muscles;
+        }
+      }
+      
+    } catch (e) {
+      print('Error preloading exercise hierarchy: $e');
+    }
+  }
+
+  Future<List<String>> _getCachedMuscles(String groupId) async {
+    if (_muscleCache.containsKey(groupId)) {
+      return _muscleCache[groupId]!;
+    }
+    
+    // If not cached, fetch and cache
+    final muscles = await _db.getMuscleDocIdsForGroup(groupId);
+    _muscleCache[groupId] = muscles;
+    return muscles;
+  }
+
+  Future<List<String>> _getCachedExercises(String groupId, String muscleId) async {
+    final cacheKey = '${groupId}_$muscleId';
+    
+    if (_exerciseCache.containsKey(cacheKey)) {
+      return _exerciseCache[cacheKey]!;
+    }
+    
+    // If not cached, fetch and cache
+    final exercises = await _db.getExercisesForMuscle(groupId, muscleId);
+    _exerciseCache[cacheKey] = exercises;
+    return exercises;
   }
 
   Future<void> _deleteExercise(String exerciseId, String exerciseName) async {
@@ -253,8 +304,8 @@ class _UserSetExercisePageState extends State<UserSetExercisePage> {
                       });
                       
                       if (newValue != null) {
-                        // Load muscle IDs for the selected group
-                        final muscleIds = await _db.getMuscleDocIdsForGroup(newValue);
+                        // Load muscle IDs for the selected group from cache
+                        final muscleIds = await _getCachedMuscles(newValue);
                         setDialogState(() {
                           _muscleIds = muscleIds;
                         });
@@ -287,8 +338,8 @@ class _UserSetExercisePageState extends State<UserSetExercisePage> {
                             });
                             
                             if (newValue != null && _selectedExerciseGroupId != null) {
-                              // Load exercise IDs for the selected muscle and group
-                              final exerciseIds = await _db.getExercisesForMuscle(_selectedExerciseGroupId!, newValue);
+                              // Load exercise IDs for the selected muscle and group from cache
+                              final exerciseIds = await _getCachedExercises(_selectedExerciseGroupId!, newValue);
                               setDialogState(() {
                                 _exerciseIds = exerciseIds;
                               });
@@ -509,6 +560,408 @@ class _UserSetExercisePageState extends State<UserSetExercisePage> {
                         }
                       : null,
                   child: const Text('Create'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showEditExerciseDialog(Map<String, dynamic> exerciseData) async {
+    // Show loading dialog first
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text('Loading exercise data...'),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      // Initialize dialog state with existing exercise data
+      String? selectedGroupId = exerciseData['group'];
+      String? selectedMuscleId = exerciseData['muscle'];
+      String? selectedExerciseId = exerciseData['exercise'];
+      
+      // Parse date from Timestamp or DateTime
+      DateTime selectedDate = DateTime.now();
+      if (exerciseData['date'] != null) {
+        if (exerciseData['date'] is Timestamp) {
+          selectedDate = (exerciseData['date'] as Timestamp).toDate();
+        } else if (exerciseData['date'] is DateTime) {
+          selectedDate = exerciseData['date'] as DateTime;
+        }
+      }
+      
+      // Parse time from string
+      TimeOfDay selectedTime = TimeOfDay.now();
+      if (exerciseData['time'] != null) {
+        final timeString = exerciseData['time'] as String;
+        final parts = timeString.split(':');
+        if (parts.length == 2) {
+          final hour = int.tryParse(parts[0]) ?? 0;
+          final minute = int.tryParse(parts[1]) ?? 0;
+          selectedTime = TimeOfDay(hour: hour, minute: minute);
+        }
+      }
+
+      // Load muscle and exercise data - use cache if available, otherwise fetch
+      List<String> muscleIds = [];
+      List<String> exerciseIds = [];
+      
+      if (selectedGroupId != null) {
+        muscleIds = await _getCachedMuscles(selectedGroupId);
+        if (selectedMuscleId != null) {
+          exerciseIds = await _getCachedExercises(selectedGroupId, selectedMuscleId);
+        }
+      }
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Show the actual edit dialog
+      _showEditDialogWithData(
+        context,
+        selectedGroupId,
+        selectedMuscleId,
+        selectedExerciseId,
+        selectedDate,
+        selectedTime,
+        muscleIds,
+        exerciseIds,
+        exerciseData,
+      );
+    } catch (e) {
+      // Close loading dialog on error
+      Navigator.of(context).pop();
+      print('Error loading edit dialog data: $e');
+      
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading exercise data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showEditDialogWithData(
+    BuildContext context,
+    String? selectedGroupId,
+    String? selectedMuscleId,
+    String? selectedExerciseId,
+    DateTime selectedDate,
+    TimeOfDay selectedTime,
+    List<String> muscleIds,
+    List<String> exerciseIds,
+    Map<String, dynamic> exerciseData,
+  ) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Edit Exercise'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedGroupId,
+                    decoration: const InputDecoration(
+                      labelText: 'Exercise Group',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _exerciseGroupIds.map((String id) {
+                      return DropdownMenuItem<String>(
+                        value: id,
+                        child: Text(
+                          id,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) async {
+                      setDialogState(() {
+                        selectedGroupId = newValue;
+                        muscleIds = []; // Clear muscle list while loading
+                        selectedMuscleId = null;
+                        exerciseIds = []; // Clear exercise list
+                        selectedExerciseId = null;
+                      });
+                      
+                      if (newValue != null) {
+                        // Load muscle IDs for the selected group from cache
+                        final newMuscleIds = await _getCachedMuscles(newValue);
+                        setDialogState(() {
+                          muscleIds = newMuscleIds;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedMuscleId,
+                    decoration: const InputDecoration(
+                      labelText: 'Muscle',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: muscleIds.map((String id) {
+                      return DropdownMenuItem<String>(
+                        value: id,
+                        child: Text(
+                          id,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: muscleIds.isNotEmpty
+                        ? (String? newValue) async {
+                            setDialogState(() {
+                              selectedMuscleId = newValue;
+                              exerciseIds = []; // Clear exercise list while loading
+                              selectedExerciseId = null;
+                            });
+                            
+                            if (newValue != null && selectedGroupId != null) {
+                              // Load exercise IDs for the selected muscle and group from cache
+                              final newExerciseIds = await _getCachedExercises(selectedGroupId!, newValue);
+                              setDialogState(() {
+                                exerciseIds = newExerciseIds;
+                              });
+                            }
+                          }
+                        : null,
+                    hint: muscleIds.isEmpty && selectedGroupId != null
+                        ? const Text('Loading muscles...')
+                        : muscleIds.isEmpty
+                            ? const Text('Select exercise group first')
+                            : const Text('Select muscle'),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedExerciseId,
+                    decoration: const InputDecoration(
+                      labelText: 'Exercise',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: exerciseIds.map((String id) {
+                      return DropdownMenuItem<String>(
+                        value: id,
+                        child: Text(
+                          id,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: exerciseIds.isNotEmpty
+                        ? (String? newValue) {
+                            setDialogState(() {
+                              selectedExerciseId = newValue;
+                            });
+                          }
+                        : null,
+                    hint: exerciseIds.isEmpty && selectedMuscleId != null
+                        ? const Text('Loading exercises...')
+                        : exerciseIds.isEmpty
+                            ? const Text('Select muscle first')
+                            : const Text('Select exercise'),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2100),
+                            );
+                            if (picked != null && picked != selectedDate) {
+                              setDialogState(() {
+                                selectedDate = picked;
+                              });
+                            }
+                          },
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'Date',
+                              border: OutlineInputBorder(),
+                              suffixIcon: Icon(Icons.calendar_today),
+                            ),
+                            child: Text(
+                              '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () async {
+                            final TimeOfDay? picked = await showTimePicker(
+                              context: context,
+                              initialTime: selectedTime,
+                            );
+                            if (picked != null && picked != selectedTime) {
+                              setDialogState(() {
+                                selectedTime = picked;
+                              });
+                            }
+                          },
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'Time',
+                              border: OutlineInputBorder(),
+                              suffixIcon: Icon(Icons.access_time),
+                            ),
+                            child: Text(
+                              selectedTime.format(context),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: selectedGroupId != null && selectedMuscleId != null && selectedExerciseId != null
+                      ? () async {
+                          try {
+                            // Convert TimeOfDay to String format
+                            final timeString = '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}';
+                            
+                            // Call the Firebase function to edit the exercise
+                            await _db.editUserWorkoutExercise(
+                              workoutId: widget.workoutId,
+                              exerciseId: exerciseData['id'],
+                              group: selectedGroupId!,
+                              muscle: selectedMuscleId!,
+                              exercise: selectedExerciseId!,
+                              date: selectedDate,
+                              time: timeString,
+                            );
+                            
+                            // Show success message
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Expanded(
+                                        child: Text(
+                                          'Exercise updated successfully! 🎉',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.green,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  margin: const EdgeInsets.all(16),
+                                  duration: const Duration(seconds: 3),
+                                  elevation: 8,
+                                ),
+                              );
+                            }
+                            
+                            // Refresh the exercise list
+                            _loadWorkoutExercises();
+                            
+                            Navigator.of(context).pop();
+                          } catch (e) {
+                            // Show error message
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: const Icon(
+                                          Icons.error_outline,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Expanded(
+                                        child: Text(
+                                          'Failed to update exercise. Please try again.',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.red,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  margin: const EdgeInsets.all(16),
+                                  duration: const Duration(seconds: 4),
+                                  elevation: 8,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      : null,
+                  child: const Text('Update'),
                 ),
               ],
             );
@@ -837,6 +1290,26 @@ class _UserSetExercisePageState extends State<UserSetExercisePage> {
                                                       ),
                                                     ),
                                                   ],
+                                                ),
+                                              ),
+                                              
+                                              // Edit button
+                                              IconButton(
+                                                onPressed: () {
+                                                  _showEditExerciseDialog(exercise);
+                                                },
+                                                icon: const Icon(
+                                                  Icons.edit,
+                                                  color: Colors.blue,
+                                                  size: 24,
+                                                ),
+                                                tooltip: 'Edit Exercise',
+                                                style: IconButton.styleFrom(
+                                                  backgroundColor: Colors.blue.withOpacity(0.1),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  padding: const EdgeInsets.all(8),
                                                 ),
                                               ),
                                               

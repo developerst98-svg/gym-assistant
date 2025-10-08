@@ -218,6 +218,51 @@ class DataBaseService {
     return docRef;
   }
 
+  /// Updates an existing exercise entry for the current user under the specified workout.
+  /// 
+  /// [workoutId] - The document ID of the workout.
+  /// [exerciseId] - The document ID of the exercise to update.
+  /// [group] - (Optional) The new exercise group name or ID.
+  /// [muscle] - (Optional) The new muscle name or ID.
+  /// [exercise] - (Optional) The new exercise name or ID.
+  /// [date] - (Optional) The new date of the exercise (DateTime).
+  /// [time] - (Optional) The new time of the exercise (String).
+  /// 
+  /// Throws if no user is logged in or the document does not exist.
+  Future<void> editUserWorkoutExercise({
+    required String workoutId,
+    required String exerciseId,
+    String? group,
+    String? muscle,
+    String? exercise,
+    DateTime? date,
+    String? time,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('No user logged in');
+    }
+
+    final exerciseRef = _firestore
+        .collection('Users')
+        .doc(user.uid)
+        .collection('workout')
+        .doc(workoutId)
+        .collection('exercises')
+        .doc(exerciseId);
+
+    final Map<String, dynamic> updateData = {};
+    if (group != null) updateData['group'] = group;
+    if (muscle != null) updateData['muscle'] = muscle;
+    if (exercise != null) updateData['exercise'] = exercise;
+    if (date != null) updateData['date'] = Timestamp.fromDate(date);
+    if (time != null) updateData['time'] = time;
+
+    if (updateData.isNotEmpty) {
+      await exerciseRef.update(updateData);
+    }
+  }
+
 
   /// Loads all exercises for a specific workout ID for the current user.
   /// Returns a list of exercise documents (as Map<String, dynamic>).
@@ -279,6 +324,42 @@ class DataBaseService {
         .add(setData);
   
     return docRef;
+  }
+
+  /// Updates an existing set for a given exercise in a workout for the current user.
+  Future<void> updateSetForExercise({
+    required String workoutId,
+    required String exerciseId,
+    required String setId,
+    required int setNumber,
+    required String weightUnit,
+    required double weight,
+    required int reps,
+    required String note,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('No user logged in');
+    }
+
+    final setData = {
+      'setNumber': setNumber,
+      'weightUnit': weightUnit,
+      'weight': weight,
+      'reps': reps,
+      'note': note,
+    };
+
+    await _firestore
+        .collection('Users')
+        .doc(user.uid)
+        .collection('workout')
+        .doc(workoutId)
+        .collection('exercises')
+        .doc(exerciseId)
+        .collection('sets')
+        .doc(setId)
+        .update(setData);
   }
 
 
